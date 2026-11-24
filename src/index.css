@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0b1030;
+  color: white;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* tab labels: cyan instead of grey, selected one slightly brighter */
+[role="radiogroup"] [role="radio"],
+[role="radiogroup"] [role="radio"] * {
+  color: #67e8f9 !important;
+}
+
+[role="radiogroup"] [role="radio"][aria-checked="true"],
+[role="radiogroup"] [role="radio"][aria-checked="true"] * {
+  color: #ecfeff !important;
+}
