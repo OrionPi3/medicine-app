@@ -5,8 +5,9 @@ import { GroupsTab } from '@/components/GroupsTab'
 import { HomeTab } from '@/components/HomeTab'
 import { LogTab } from '@/components/LogTab'
 import { MedicinesTab } from '@/components/MedicinesTab'
+import { sameDay } from '@/days'
 import { getPermission, notify, requestPermission, type Perm } from '@/notifications'
-import { isTaken, slotsOn } from '@/schedule'
+import { isTaken, slotsOn, type Slot } from '@/schedule'
 import { uid, useLocalStorage } from '@/storage'
 import type { Group, GroupItem, LogEntry, Medicine } from '@/types'
 
@@ -74,6 +75,27 @@ export default function App() {
       }),
     )
     if (group && slot) setAlerts((a) => a.filter((x) => !x.id.startsWith(`${group.id}@${slot}|`)))
+  }
+
+  // unticking a group: remove that slot's logs for the day and put the tablets back
+  const untake = (slot: Slot, date: Date) => {
+    const gone = logs.filter(
+      (l) =>
+        l.groupId === slot.group.id &&
+        (l.slot ?? slot.group.time) === slot.time &&
+        sameDay(new Date(l.takenAt), date) &&
+        slot.items.some((it) => it.medicineId === l.medicineId),
+    )
+    if (gone.length === 0) return
+
+    const ids = new Set(gone.map((l) => l.id))
+    setLogs((prev) => prev.filter((l) => !ids.has(l.id)))
+    setMedicines((prev) =>
+      prev.map((m) => {
+        const back = gone.filter((l) => l.medicineId === m.id).reduce((sum, l) => sum + l.dose, 0)
+        return back > 0 ? { ...m, quantity: m.quantity + back } : m
+      }),
+    )
   }
 
   const undo = (entry: LogEntry) => {
@@ -191,7 +213,9 @@ export default function App() {
           />
         </div>
 
-        {tab === 'home' && <HomeTab medicines={medicines} groups={groups} logs={logs} />}
+        {tab === 'home' && (
+          <HomeTab medicines={medicines} groups={groups} logs={logs} onTake={take} onUntake={untake} />
+        )}
         {tab === 'log' && <LogTab medicines={medicines} groups={groups} logs={logs} onTake={take} onUndo={undo} />}
         {tab === 'medicines' && (
           <MedicinesTab

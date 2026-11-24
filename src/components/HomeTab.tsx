@@ -1,11 +1,18 @@
 import { useState } from 'react'
 
 import { GlassButton, GlassCard, GlassTabs } from '@/components/liquid-glass'
+import { Checkbox } from '@/components/liquid-glass/controls/Checkbox.tsx'
 import { DAY_NAMES, addDays, sameDay, startOfWeek } from '@/days'
 import { isTaken, slotsOn, type Slot } from '@/schedule'
-import type { Group, LogEntry, Medicine } from '@/types'
+import type { Group, GroupItem, LogEntry, Medicine } from '@/types'
 
-type Props = { medicines: Medicine[]; groups: Group[]; logs: LogEntry[] }
+type Props = {
+  medicines: Medicine[]
+  groups: Group[]
+  logs: LogEntry[]
+  onTake: (items: GroupItem[], group: { id: string; name: string } | null, slot: string | null) => void
+  onUntake: (slot: Slot, date: Date) => void
+}
 type View = 'day' | 'week'
 type Status = 'taken' | 'due' | 'missed' | 'upcoming'
 
@@ -33,35 +40,66 @@ type RowProps = {
   medicines: Medicine[]
   logs: LogEntry[]
   now: Date
-  glass: boolean
+  glass: boolean // day view: glass card with a checkbox. week view: plain row.
+  onTake: Props['onTake']
+  onUntake: Props['onUntake']
 }
 
-function SlotRow({ slot, date, medicines, logs, now, glass }: RowProps) {
-  const b = badge[statusOf(slot, date, logs, now)]
+function SlotRow({ slot, date, medicines, logs, now, glass, onTake, onUntake }: RowProps) {
+  const status = statusOf(slot, date, logs, now)
+  const taken = status === 'taken'
+  const b = badge[status]
   const items = slot.items.flatMap((it) => {
     const m = medicines.find((x) => x.id === it.medicineId)
     return m ? [{ m, dose: it.dose }] : []
   })
 
+  const toggle = (on: boolean) => {
+    if (on) onTake(slot.items, { id: slot.group.id, name: slot.group.name }, slot.time)
+    else onUntake(slot, date)
+  }
+
+  const outline = taken ? 'ring-2 ring-emerald-400' : ''
+
   const body = (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <p className="font-semibold">
-          {slot.time} <span className="font-normal opacity-60">· {slot.group.name}</span>
-        </p>
-        <p className="mt-1 text-sm opacity-70">
-          {items.map(({ m, dose }) => `${m.name} ${m.mg} mg × ${dose}`).join(', ')}
-        </p>
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold">
+            {slot.time} <span className="font-normal opacity-60">· {slot.group.name}</span>
+          </p>
+          <p className="mt-1 text-sm opacity-70">
+            {items.map(({ m, dose }) => `${m.name} ${m.mg} mg × ${dose}`).join(', ')}
+          </p>
+        </div>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${b.cls}`}>{b.label}</span>
       </div>
-      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${b.cls}`}>{b.label}</span>
-    </div>
+
+      {glass && (
+        <div className="mt-3">
+          <Checkbox
+            label={taken ? 'Taken' : 'Mark as taken'}
+            theme="dark"
+            color="#34c759"
+            size="lg"
+            checked={taken}
+            disabled={!sameDay(date, now)}
+            onChange={toggle}
+          />
+        </div>
+      )}
+    </>
   )
 
-  if (glass) return <GlassCard className="p-4">{body}</GlassCard>
-  return <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3">{body}</div>
+  if (glass) {
+    return (
+      <GlassCard className={`p-4 transition-shadow ${outline}`}>{body}</GlassCard>
+    )
+  }
+  return <div className={`rounded-2xl border border-white/15 bg-white/10 px-4 py-3 ${outline}`}>{body}</div>
 }
 
-export function HomeTab({ medicines, groups, logs }: Props) {
+export function HomeTab({ medicines, groups, logs, onTake, onUntake }: Props) {
   const [view, setView] = useState<View>('day')
   const [date, setDate] = useState(() => new Date())
   const now = new Date()
@@ -118,7 +156,17 @@ export function HomeTab({ medicines, groups, logs }: Props) {
         <div className="space-y-3">
           {daySlots.length === 0 && <p className="text-center text-white/60">Nothing scheduled for this day.</p>}
           {daySlots.map((s) => (
-            <SlotRow key={s.key} slot={s} date={date} medicines={medicines} logs={logs} now={now} glass />
+            <SlotRow
+              key={s.key}
+              slot={s}
+              date={date}
+              medicines={medicines}
+              logs={logs}
+              now={now}
+              glass
+              onTake={onTake}
+              onUntake={onUntake}
+            />
           ))}
         </div>
       ) : (
@@ -133,7 +181,17 @@ export function HomeTab({ medicines, groups, logs }: Props) {
                 </p>
                 {slots.length === 0 && <p className="text-sm text-white/40">Nothing scheduled.</p>}
                 {slots.map((s) => (
-                  <SlotRow key={s.key} slot={s} date={d} medicines={medicines} logs={logs} now={now} glass={false} />
+                  <SlotRow
+                    key={s.key}
+                    slot={s}
+                    date={d}
+                    medicines={medicines}
+                    logs={logs}
+                    now={now}
+                    glass={false}
+                    onTake={onTake}
+                    onUntake={onUntake}
+                  />
                 ))}
               </section>
             )

@@ -27,7 +27,7 @@ export function LogTab({ medicines, groups, logs, onTake, onUndo }: Props) {
         {slots.map((s) => {
           const done = isTaken(s, now, logs)
           return (
-            <GlassCard key={s.key} className="p-4">
+            <GlassCard key={s.key} className={`p-4 ${done ? 'ring-2 ring-emerald-400' : ''}`}>
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-lg font-semibold">
