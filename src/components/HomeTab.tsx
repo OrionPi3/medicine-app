@@ -1,7 +1,8 @@
 import { useState } from 'react'
 
+import { DoneFrame } from '@/components/DoneFrame'
 import { GlassButton, GlassCard, GlassTabs } from '@/components/liquid-glass'
-import { Checkbox } from '@/components/liquid-glass/controls/Checkbox.tsx'
+import { Checkbox } from '@/components/liquid-glass/controls/Checkbox'
 import { DAY_NAMES, addDays, sameDay, startOfWeek } from '@/days'
 import { isTaken, slotsOn, type Slot } from '@/schedule'
 import type { Group, GroupItem, LogEntry, Medicine } from '@/types'
@@ -59,8 +60,6 @@ function SlotRow({ slot, date, medicines, logs, now, glass, onTake, onUntake }: 
     else onUntake(slot, date)
   }
 
-  const outline = taken ? 'ring-2 ring-emerald-400' : ''
-
   const body = (
     <>
       <div className="flex items-start justify-between gap-3">
@@ -93,10 +92,21 @@ function SlotRow({ slot, date, medicines, logs, now, glass, onTake, onUntake }: 
 
   if (glass) {
     return (
-      <GlassCard className={`p-4 transition-shadow ${outline}`}>{body}</GlassCard>
+      <DoneFrame done={taken}>
+        <GlassCard className="p-4">{body}</GlassCard>
+      </DoneFrame>
     )
   }
-  return <div className={`rounded-2xl border border-white/15 bg-white/10 px-4 py-3 ${outline}`}>{body}</div>
+
+  return (
+    <div
+      className={`rounded-2xl border px-4 py-3 transition-colors ${
+        taken ? 'border-emerald-400 bg-emerald-400/10 ring-1 ring-emerald-400' : 'border-white/15 bg-white/10'
+      }`}
+    >
+      {body}
+    </div>
+  )
 }
 
 export function HomeTab({ medicines, groups, logs, onTake, onUntake }: Props) {

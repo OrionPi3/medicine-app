@@ -1,3 +1,4 @@
+import { DoneFrame } from '@/components/DoneFrame'
 import { GlassButton, GlassCard } from '@/components/liquid-glass'
 import { isTaken, slotsOn } from '@/schedule'
 import type { Group, GroupItem, LogEntry, Medicine } from '@/types'
@@ -27,37 +28,39 @@ export function LogTab({ medicines, groups, logs, onTake, onUndo }: Props) {
         {slots.map((s) => {
           const done = isTaken(s, now, logs)
           return (
-            <GlassCard key={s.key} className={`p-4 ${done ? 'ring-2 ring-emerald-400' : ''}`}>
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-lg font-semibold">
-                    {s.time} <span className="font-normal opacity-60">· {s.group.name}</span>
-                  </p>
-                  {done && <p className="text-sm text-emerald-400">Taken today</p>}
+            <DoneFrame key={s.key} done={done}>
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-semibold">
+                      {s.time} <span className="font-normal opacity-60">· {s.group.name}</span>
+                    </p>
+                    {done && <p className="text-sm text-emerald-400">Taken today</p>}
+                  </div>
+                  <GlassButton
+                    material="tinted"
+                    className="bg-emerald-600 text-white"
+                    onClick={() => onTake(s.items, { id: s.group.id, name: s.group.name }, s.time)}
+                  >
+                    {done ? 'Take again' : 'Take all'}
+                  </GlassButton>
                 </div>
-                <GlassButton
-                  material="tinted"
-                  className="bg-emerald-600 text-white"
-                  onClick={() => onTake(s.items, { id: s.group.id, name: s.group.name }, s.time)}
-                >
-                  {done ? 'Take again' : 'Take all'}
-                </GlassButton>
-              </div>
-              <ul className="mt-3 space-y-1 text-sm">
-                {s.items.map((it) => {
-                  const m = medicines.find((x) => x.id === it.medicineId)
-                  if (!m) return null
-                  return (
-                    <li key={it.medicineId} className="flex justify-between">
-                      <span>
-                        {m.name} <span className="opacity-60">{m.mg} mg × {it.dose}</span>
-                      </span>
-                      <span className="opacity-60">{m.quantity} left</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </GlassCard>
+                <ul className="mt-3 space-y-1 text-sm">
+                  {s.items.map((it) => {
+                    const m = medicines.find((x) => x.id === it.medicineId)
+                    if (!m) return null
+                    return (
+                      <li key={it.medicineId} className="flex justify-between">
+                        <span>
+                          {m.name} <span className="opacity-60">{m.mg} mg × {it.dose}</span>
+                        </span>
+                        <span className="opacity-60">{m.quantity} left</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </GlassCard>
+            </DoneFrame>
           )
         })}
       </section>

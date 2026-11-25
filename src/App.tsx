@@ -5,13 +5,14 @@ import { GroupsTab } from '@/components/GroupsTab'
 import { HomeTab } from '@/components/HomeTab'
 import { LogTab } from '@/components/LogTab'
 import { MedicinesTab } from '@/components/MedicinesTab'
+import { RefillsTab } from '@/components/RefillsTab'
 import { sameDay } from '@/days'
 import { getPermission, notify, requestPermission, type Perm } from '@/notifications'
 import { isTaken, slotsOn, type Slot } from '@/schedule'
 import { uid, useLocalStorage } from '@/storage'
 import type { Group, GroupItem, LogEntry, Medicine } from '@/types'
 
-type Tab = 'home' | 'log' | 'medicines' | 'groups'
+type Tab = 'home' | 'log' | 'medicines' | 'groups' | 'refills'
 type Alert = { id: string; text: string }
 
 export default function App() {
@@ -200,15 +201,16 @@ export default function App() {
         <div className="flex justify-center">
           <GlassTabs
             aria-label="Sections"
-            size="lg"
+            size="md"
             highlightClassName="bg-cyan-900"
             value={tab}
             onValueChange={(v) => v && setTab(v as Tab)}
             options={[
               { value: 'home', label: 'Home' },
               { value: 'log', label: 'Log' },
-              { value: 'medicines', label: 'Medicines' },
+              { value: 'medicines', label: 'Meds' },
               { value: 'groups', label: 'Groups' },
+              { value: 'refills', label: lowMeds.length > 0 ? `Refills (${lowMeds.length})` : 'Refills' },
             ]}
           />
         </div>
@@ -235,6 +237,7 @@ export default function App() {
             onDelete={deleteGroup}
           />
         )}
+        {tab === 'refills' && <RefillsTab medicines={medicines} onRefill={refill} />}
 
         <p className="pt-6 text-center text-xs text-white/40">
           MedTrack is a reminder tool, not medical advice. Follow your prescriber's instructions.
