@@ -213,17 +213,17 @@ export function HomeTab({ medicines, groups, logs, onTake, onUntake }: Props) {
 
       {lowMeds.length > 0 ? (
         <div>
-          <p className="font-semibold text-red-400">Running low</p>
+          <p className="font-semibold text-red-400">Needs refilling</p>
           <ul className="mt-2 space-y-1 text-red-400">
             {lowMeds.map((m) => (
               <li key={m.id}>
-                {m.name} {m.mg} mg: {m.quantity} left
+                {m.name} {m.mg} mg
               </li>
             ))}
           </ul>
         </div>
       ) : (
-        <p className="text-sm text-white/50">No medicines running low.</p>
+        <p className="text-sm text-white/50">Nothing needs refilling.</p>
       )}
     </div>
   )

@@ -15,6 +15,20 @@ import type { Group, GroupItem, LogEntry, Medicine } from '@/types'
 type Tab = 'home' | 'log' | 'medicines' | 'groups' | 'refills'
 type Alert = { id: string; text: string }
 
+// Taking a dose lowers the stock AND the Refills tab's "to take this week".
+// "Left in bottle" is never touched automatically.
+const spend = (m: Medicine, dose: number): Medicine => ({
+  ...m,
+  quantity: Math.max(0, m.quantity - dose),
+  weekNeed: m.weekNeed === undefined ? undefined : Math.max(0, m.weekNeed - dose),
+})
+
+const giveBack = (m: Medicine, dose: number): Medicine => ({
+  ...m,
+  quantity: m.quantity + dose,
+  weekNeed: m.weekNeed === undefined ? undefined : m.weekNeed + dose,
+})
+
 export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [medicines, setMedicines] = useLocalStorage<Medicine[]>('medtrack:medicines', [])
@@ -30,6 +44,9 @@ export default function App() {
   const addMedicine = (m: Omit<Medicine, 'id'>) => setMedicines((prev) => [...prev, { ...m, id: uid() }])
 
   const editMedicine = (id: string, patch: Omit<Medicine, 'id'>) =>
+    setMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)))
+
+  const patchMedicine = (id: string, patch: Partial<Omit<Medicine, 'id'>>) =>
     setMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)))
 
   const deleteMedicine = (id: string) => {
@@ -72,7 +89,7 @@ export default function App() {
     setMedicines((prev) =>
       prev.map((m) => {
         const it = items.find((i) => i.medicineId === m.id)
-        return it ? { ...m, quantity: Math.max(0, m.quantity - it.dose) } : m
+        return it ? spend(m, it.dose) : m
       }),
     )
     if (group && slot) setAlerts((a) => a.filter((x) => !x.id.startsWith(`${group.id}@${slot}|`)))
@@ -94,16 +111,14 @@ export default function App() {
     setMedicines((prev) =>
       prev.map((m) => {
         const back = gone.filter((l) => l.medicineId === m.id).reduce((sum, l) => sum + l.dose, 0)
-        return back > 0 ? { ...m, quantity: m.quantity + back } : m
+        return back > 0 ? giveBack(m, back) : m
       }),
     )
   }
 
   const undo = (entry: LogEntry) => {
     setLogs((prev) => prev.filter((l) => l.id !== entry.id))
-    setMedicines((prev) =>
-      prev.map((m) => (m.id === entry.medicineId ? { ...m, quantity: m.quantity + entry.dose } : m)),
-    )
+    setMedicines((prev) => prev.map((m) => (m.id === entry.medicineId ? giveBack(m, entry.dose) : m)))
   }
 
   /* ---------- reminders (checks every 15s while the app is open) ---------- */
@@ -147,7 +162,7 @@ export default function App() {
   useEffect(() => {
     const lowIds = lowMeds.map((m) => m.id)
     const fresh = lowMeds.filter((m) => !lowNotified.includes(m.id))
-    fresh.forEach((m) => notify('Running low', `${m.name} ${m.mg} mg: ${m.quantity} left`))
+    fresh.forEach((m) => notify('Running low', `${m.name} ${m.mg} mg needs refilling`))
     const next = [...lowNotified.filter((id) => lowIds.includes(id)), ...fresh.map((m) => m.id)]
     if (fresh.length || next.length !== lowNotified.length) setLowNotified(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -237,7 +252,7 @@ export default function App() {
             onDelete={deleteGroup}
           />
         )}
-        {tab === 'refills' && <RefillsTab medicines={medicines} onRefill={refill} />}
+        {tab === 'refills' && <RefillsTab medicines={medicines} onRefill={refill} onUpdate={patchMedicine} />}
 
         <p className="pt-6 text-center text-xs text-white/40">
           MedTrack is a reminder tool, not medical advice. Follow your prescriber's instructions.

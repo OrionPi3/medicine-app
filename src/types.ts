@@ -4,6 +4,8 @@ export type Medicine = {
   mg: number
   quantity: number // units left (pills, capsules...)
   lowAt: number // warn when quantity <= this
+  weekNeed?: number // Refills tab: amount still to be taken this week (goes down as doses are ticked)
+  inBottle?: number // Refills tab: amount left in the bottle (entered by hand)
 }
 
 export type GroupItem = {
