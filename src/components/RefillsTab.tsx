@@ -11,14 +11,39 @@ type Props = {
 }
 
 const toNum = (v: string) => (v === '' ? undefined : Math.max(0, Number(v)))
+const show = (n?: number) => (n === undefined ? '—' : String(n))
+
+function Stat({ label, value }: { label: string; value?: number }) {
+  return (
+    <div>
+      <p className={labelClass}>{label}</p>
+      <p className="text-2xl font-semibold tabular-nums">{show(value)}</p>
+    </div>
+  )
+}
 
 type CardProps = { med: Medicine } & Pick<Props, 'onRefill' | 'onUpdate'>
 
 function RefillCard({ med, onRefill, onUpdate }: CardProps) {
   const [amount, setAmount] = useState('')
+  const [editing, setEditing] = useState(med.weekNeed === undefined && med.inBottle === undefined)
+  const [week, setWeek] = useState(String(med.weekNeed ?? ''))
+  const [bottle, setBottle] = useState(String(med.inBottle ?? ''))
   const n = Number(amount)
 
-  const submit = (e: FormEvent) => {
+  const startEdit = () => {
+    setWeek(String(med.weekNeed ?? ''))
+    setBottle(String(med.inBottle ?? ''))
+    setEditing(true)
+  }
+
+  const saveNumbers = (e: FormEvent) => {
+    e.preventDefault()
+    onUpdate(med.id, { weekNeed: toNum(week), inBottle: toNum(bottle) })
+    setEditing(false)
+  }
+
+  const submitRefill = (e: FormEvent) => {
     e.preventDefault()
     if (n > 0) {
       onRefill(med.id, n)
@@ -33,42 +58,72 @@ function RefillCard({ med, onRefill, onUpdate }: CardProps) {
         <p className="text-sm opacity-60">{med.mg} mg</p>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div>
-          <label htmlFor={`week-${med.id}`} className={labelClass}>
-            To take this week
-          </label>
-          <input
-            id={`week-${med.id}`}
-            className={inputClass}
-            type="number"
-            min="0"
-            step="any"
-            inputMode="decimal"
-            placeholder="0"
-            value={med.weekNeed ?? ''}
-            onChange={(e) => onUpdate(med.id, { weekNeed: toNum(e.target.value) })}
-          />
+      {editing ? (
+        <form onSubmit={saveNumbers} className="mt-4 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor={`week-${med.id}`} className={labelClass}>
+                To take this week
+              </label>
+              <input
+                id={`week-${med.id}`}
+                className={inputClass}
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                placeholder="0"
+                value={week}
+                onChange={(e) => setWeek(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor={`bottle-${med.id}`} className={labelClass}>
+                Left in bottle
+              </label>
+              <input
+                id={`bottle-${med.id}`}
+                className={inputClass}
+                type="number"
+                min="0"
+                step="any"
+                inputMode="decimal"
+                placeholder="0"
+                value={bottle}
+                onChange={(e) => setBottle(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <GlassButton type="submit" size="sm" material="tinted" className="bg-sky-600 text-white">
+              Save
+            </GlassButton>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="cursor-pointer text-sm text-white/70 hover:text-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="mt-4 flex items-end justify-between gap-3">
+          <div className="grid flex-1 grid-cols-2 gap-3">
+            <Stat label="To take this week" value={med.weekNeed} />
+            <Stat label="Left in bottle" value={med.inBottle} />
+          </div>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="cursor-pointer pb-1 text-sm font-medium hover:underline"
+          >
+            Edit
+          </button>
         </div>
-        <div>
-          <label htmlFor={`bottle-${med.id}`} className={labelClass}>
-            Left in bottle
-          </label>
-          <input
-            id={`bottle-${med.id}`}
-            className={inputClass}
-            type="number"
-            min="0"
-            step="any"
-            inputMode="decimal"
-            placeholder="0"
-            value={med.inBottle ?? ''}
-            onChange={(e) => onUpdate(med.id, { inBottle: toNum(e.target.value) })}
-          />
-        </div>
-      </div>
+      )}
 
-      <form onSubmit={submit} className="mt-4 flex items-center gap-3">
+      <form onSubmit={submitRefill} className="mt-4 flex items-center gap-3">
         <input
           type="number"
           min="1"
