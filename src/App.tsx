@@ -16,7 +16,7 @@ type Tab = 'home' | 'log' | 'medicines' | 'groups' | 'refills'
 type Alert = { id: string; text: string }
 
 // Taking a dose lowers the stock AND the Refills tab's "to take this week".
-// "Left in bottle" is never touched automatically.
+// "Left in bottle" is never touched automatically by doses.
 const spend = (m: Medicine, dose: number): Medicine => ({
   ...m,
   quantity: Math.max(0, m.quantity - dose),
@@ -54,8 +54,19 @@ export default function App() {
     setGroups((prev) => prev.map((g) => ({ ...g, items: g.items.filter((i) => i.medicineId !== id) })))
   }
 
+  // a refill raises the stock and "left in bottle" (if you've set one) by the amount you got
   const refill = (id: string, amount: number) =>
-    setMedicines((prev) => prev.map((m) => (m.id === id ? { ...m, quantity: m.quantity + amount } : m)))
+    setMedicines((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? {
+              ...m,
+              quantity: m.quantity + amount,
+              inBottle: m.inBottle === undefined ? undefined : m.inBottle + amount,
+            }
+          : m,
+      ),
+    )
 
   const addGroup = (g: Omit<Group, 'id'>) => setGroups((prev) => [...prev, { ...g, id: uid() }])
 
