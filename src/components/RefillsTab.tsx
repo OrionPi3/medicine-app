@@ -110,7 +110,7 @@ function RefillCard({ med, onRefill, onUpdate }: CardProps) {
       ) : (
         <div className="mt-4 flex items-end justify-between gap-3">
           <div className="grid flex-1 grid-cols-2 gap-3">
-            <Stat label="To take this week" value={med.weekNeed} />
+            <Stat label="Take this week" value={med.weekNeed} />
             <Stat label="Left in bottle" value={med.inBottle} />
           </div>
           <button
